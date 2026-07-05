@@ -19,6 +19,7 @@ interface DetectedObjectPayload {
   englishLabel: string;
   word: string;
   romanization: string | null;
+  koreanPronunciation: string | null;
   boundingBox: { x: number; y: number; width: number; height: number };
 }
 
@@ -54,7 +55,8 @@ router.post("/vocab/analyze", async (req: Request, res: Response) => {
             (needsRomanization
               ? "Also provide a romanized/phonetic reading of the translated word."
               : "Set romanization to null.") +
-            ' Respond ONLY with JSON: { "objects": [ { "englishLabel": string, "word": string, "romanization": string|null, "boundingBox": { "x": number, "y": number, "width": number, "height": number } } ] }',
+            " For koreanPronunciation, transcribe how the translated word is pronounced using Korean Hangul (외래어 표기, e.g. ノートパソコン → 노토파소콘, laptop → 랩톱)." +
+            ' Respond ONLY with JSON: { "objects": [ { "englishLabel": string, "word": string, "romanization": string|null, "koreanPronunciation": string|null, "boundingBox": { "x": number, "y": number, "width": number, "height": number } } ] }',
         },
         {
           role: "user",
@@ -78,6 +80,7 @@ router.post("/vocab/analyze", async (req: Request, res: Response) => {
         englishLabel?: string;
         word?: string;
         romanization?: string | null;
+        koreanPronunciation?: string | null;
         boundingBox?: { x?: number; y?: number; width?: number; height?: number };
       }>;
     };
@@ -89,6 +92,7 @@ router.post("/vocab/analyze", async (req: Request, res: Response) => {
         englishLabel: o.englishLabel as string,
         word: o.word as string,
         romanization: o.romanization ?? null,
+        koreanPronunciation: o.koreanPronunciation ?? null,
         boundingBox: {
           x: clamp01(o.boundingBox?.x ?? 0),
           y: clamp01(o.boundingBox?.y ?? 0),

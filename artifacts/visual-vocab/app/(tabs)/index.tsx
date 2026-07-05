@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   LayoutChangeEvent,
@@ -34,7 +34,7 @@ interface AudioCacheEntry {
 export default function ScanScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { isSaved, saveWord } = useVocab();
+  const { savedWords: savedVocab, isSaved, saveWord } = useVocab();
 
   const [language, setLanguage] = useState<LanguageCode>("ja");
   const [screenState, setScreenState] = useState<ScreenState>("camera");
@@ -45,23 +45,42 @@ export default function ScanScreen() {
   const [selectedObject, setSelectedObject] = useState<DetectedObject | null>(null);
   const [audioCache, setAudioCache] = useState<Record<string, AudioCacheEntry>>({});
   const [isPlaying, setIsPlaying] = useState(false);
+  const [playingWord, setPlayingWord] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+
+  const [liveMode, setLiveMode] = useState(false);
+  const [liveObjects, setLiveObjects] = useState<DetectedObject[]>([]);
+  const [liveStatus, setLiveStatus] = useState<"idle" | "analyzing">("idle");
+  const [liveSize, setLiveSize] = useState({ width: 0, height: 0 });
+  const audioCacheRef = useRef(audioCache);
+  audioCacheRef.current = audioCache;
+  const liveModeRef = useRef(liveMode);
+  liveModeRef.current = liveMode;
+
+  const savedWordSet = useMemo(
+    () =>
+      new Set(
+        savedVocab.filter((entry) => entry.language === language).map((entry) => entry.word),
+      ),
+    [savedVocab, language],
+  );
 
   const analyzeMutation = useAnalyzeScene();
   const speechMutation = useSynthesizeVocabSpeech();
+  const analyzeAsync = analyzeMutation.mutateAsync;
+  const speechAsync = speechMutation.mutateAsync;
 
   const handleCapture = useCallback(
     async (uri: string) => {
+      setLiveMode(false);
+      setLiveObjects([]);
       setScreenState("analyzing");
       setSelectedObject(null);
-      setAudioCache({});
-      setSavedIds(new Set());
       try {
         const prepared = await prepareImageForAnalysis(uri);
         setImageUri(prepared.uri);
         setImageAspectRatio(prepared.width / prepared.height);
-        const result = await analyzeMutation.mutateAsync({
+        const result = await analyzeAsync({
           data: { imageBase64: prepared.base64, language },
         });
         setObjects(result.objects);
@@ -74,43 +93,101 @@ export default function ScanScreen() {
         setScreenState("camera");
       }
     },
-    [analyzeMutation, language],
+    [analyzeAsync, language],
   );
+
+  const handleLiveFrame = useCallback(
+    async (uri: string) => {
+      if (!liveModeRef.current) return;
+      setLiveStatus("analyzing");
+      try {
+        const prepared = await prepareImageForAnalysis(uri);
+        const result = await analyzeAsync({
+          data: { imageBase64: prepared.base64, language },
+        });
+        // Ignore responses that resolve after live mode was toggled off.
+        if (liveModeRef.current) {
+          setLiveObjects(result.objects);
+        }
+      } catch {
+        // Live frames fail silently — the next frame retries automatically.
+      } finally {
+        setLiveStatus("idle");
+      }
+    },
+    [analyzeAsync, language],
+  );
+
+  const handleToggleLive = useCallback(() => {
+    setLiveMode((prev) => {
+      if (prev) {
+        setLiveObjects([]);
+        setSelectedObject(null);
+        setLiveStatus("idle");
+      }
+      return !prev;
+    });
+  }, []);
 
   const handleContainerLayout = useCallback((event: LayoutChangeEvent) => {
     const { width, height } = event.nativeEvent.layout;
     setContainerSize({ width, height });
   }, []);
 
+  const handleLiveLayout = useCallback((event: LayoutChangeEvent) => {
+    const { width, height } = event.nativeEvent.layout;
+    setLiveSize({ width, height });
+  }, []);
+
   const getOrFetchAudio = useCallback(
     async (object: DetectedObject): Promise<AudioCacheEntry> => {
-      const cached = audioCache[object.id];
+      const cacheKey = `${language}:${object.word}`;
+      const cached = audioCacheRef.current[cacheKey];
       if (cached) return cached;
-      const result = await speechMutation.mutateAsync({
+      const result = await speechAsync({
         data: { text: object.word, language },
       });
       const entry: AudioCacheEntry = { audioBase64: result.audioBase64, format: result.format };
-      setAudioCache((prev) => ({ ...prev, [object.id]: entry }));
+      setAudioCache((prev) => ({ ...prev, [cacheKey]: entry }));
       return entry;
     },
-    [audioCache, speechMutation, language],
+    [speechAsync, language],
+  );
+
+  const playObject = useCallback(
+    async (object: DetectedObject) => {
+      if (isPlaying) return;
+      setIsPlaying(true);
+      setPlayingWord(object.word);
+      try {
+        const entry = await getOrFetchAudio(object);
+        await playBase64Audio(entry.audioBase64, entry.format);
+      } catch (error) {
+        showAlert(
+          "Couldn't play pronunciation",
+          error instanceof Error ? error.message : "Please try again.",
+        );
+      } finally {
+        setIsPlaying(false);
+        setPlayingWord(null);
+      }
+    },
+    [isPlaying, getOrFetchAudio],
+  );
+
+  const handleSelectObject = useCallback(
+    (object: DetectedObject) => {
+      setSelectedObject(object);
+      // Speak immediately on tap — no extra button press needed.
+      void playObject(object);
+    },
+    [playObject],
   );
 
   const handlePlay = useCallback(async () => {
-    if (!selectedObject || isPlaying) return;
-    setIsPlaying(true);
-    try {
-      const entry = await getOrFetchAudio(selectedObject);
-      await playBase64Audio(entry.audioBase64, entry.format);
-    } catch (error) {
-      showAlert(
-        "Couldn't play pronunciation",
-        error instanceof Error ? error.message : "Please try again.",
-      );
-    } finally {
-      setIsPlaying(false);
-    }
-  }, [selectedObject, isPlaying, getOrFetchAudio]);
+    if (!selectedObject) return;
+    await playObject(selectedObject);
+  }, [selectedObject, playObject]);
 
   const handleSave = useCallback(async () => {
     if (!selectedObject || isSaving) return;
@@ -118,7 +195,6 @@ export default function ScanScreen() {
     try {
       const entry = await getOrFetchAudio(selectedObject);
       await saveWord(selectedObject, language, entry.audioBase64, entry.format);
-      setSavedIds((prev) => new Set(prev).add(selectedObject.id));
     } catch (error) {
       showAlert("Couldn't save word", error instanceof Error ? error.message : "Please try again.");
     } finally {
@@ -139,7 +215,41 @@ export default function ScanScreen() {
         <View style={[styles.languageBar, { paddingTop: insets.top + 12 }]}>
           <LanguagePicker value={language} onChange={setLanguage} />
         </View>
-        <SceneCapture onCapture={handleCapture} />
+        <View style={styles.cameraArea} onLayout={handleLiveLayout}>
+          <SceneCapture
+            onCapture={handleCapture}
+            live={liveMode}
+            onToggleLive={handleToggleLive}
+            onLiveFrame={handleLiveFrame}
+            liveStatus={liveStatus}
+            overlay={
+              liveMode && liveObjects.length > 0 ? (
+                <LabelOverlay
+                  objects={liveObjects}
+                  containerWidth={liveSize.width}
+                  containerHeight={liveSize.height}
+                  selectedWord={selectedObject?.word ?? null}
+                  playingWord={playingWord}
+                  savedWords={savedWordSet}
+                  onSelect={handleSelectObject}
+                />
+              ) : null
+            }
+          />
+          {liveMode && selectedObject ? (
+            <View style={[styles.liveDetailWrapper, { bottom: insets.bottom + 180 }]}>
+              <DetailCard
+                object={selectedObject}
+                isSaved={isSaved(selectedObject.word, language)}
+                isPlaying={isPlaying}
+                isSaving={isSaving}
+                onPlay={handlePlay}
+                onSave={handleSave}
+                onClose={() => setSelectedObject(null)}
+              />
+            </View>
+          ) : null}
+        </View>
       </View>
     );
   }
@@ -178,9 +288,10 @@ export default function ScanScreen() {
               objects={objects}
               containerWidth={containerSize.width}
               containerHeight={containerSize.height}
-              selectedId={selectedObject?.id ?? null}
-              savedIds={savedIds}
-              onSelect={setSelectedObject}
+              selectedWord={selectedObject?.word ?? null}
+              playingWord={playingWord}
+              savedWords={savedWordSet}
+              onSelect={handleSelectObject}
             />
           )}
         </View>
@@ -198,7 +309,7 @@ export default function ScanScreen() {
           <View style={styles.detailWrapper}>
             <DetailCard
               object={selectedObject}
-              isSaved={isSaved(selectedObject.word, language) || savedIds.has(selectedObject.id)}
+              isSaved={isSaved(selectedObject.word, language)}
               isPlaying={isPlaying}
               isSaving={isSaving}
               onPlay={handlePlay}
@@ -214,6 +325,7 @@ export default function ScanScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  cameraArea: { flex: 1, position: "relative" },
   languageBar: {
     paddingHorizontal: 16,
     paddingBottom: 12,
@@ -258,5 +370,10 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 15, textAlign: "center" },
   detailWrapper: {
     padding: 16,
+  },
+  liveDetailWrapper: {
+    position: "absolute",
+    left: 16,
+    right: 16,
   },
 });

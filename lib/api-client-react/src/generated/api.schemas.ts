@@ -43,6 +43,8 @@ export interface DetectedObject {
   word: string;
   /** Romanized/phonetic reading for non-Latin scripts, null otherwise */
   romanization: string | null;
+  /** Korean Hangul transcription of how the word is pronounced */
+  koreanPronunciation: string | null;
   boundingBox: BoundingBox;
 }
 

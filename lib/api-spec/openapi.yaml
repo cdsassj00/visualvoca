@@ -100,6 +100,10 @@ components:
           type: string
           nullable: true
           description: Romanized/phonetic reading for non-Latin scripts, null otherwise
+        koreanPronunciation:
+          type: string
+          nullable: true
+          description: Korean Hangul transcription of how the word is pronounced
         boundingBox:
           $ref: "#/components/schemas/BoundingBox"
       required:
@@ -107,6 +111,7 @@ components:
         - englishLabel
         - word
         - romanization
+        - koreanPronunciation
         - boundingBox
     BoundingBox:
       type: object

@@ -81,6 +81,11 @@ export default function SavedScreen() {
                 {languageLabel} · {item.englishLabel}
               </Text>
               <Text style={[styles.word, { color: colors.foreground }]}>{item.word}</Text>
+              {item.koreanPronunciation ? (
+                <Text style={[styles.koreanPronunciation, { color: colors.primary }]}>
+                  {item.koreanPronunciation}
+                </Text>
+              ) : null}
               {item.romanization ? (
                 <Text style={[styles.romanization, { color: colors.mutedForeground }]}>
                   {item.romanization}
@@ -130,7 +135,8 @@ const styles = StyleSheet.create({
   },
   wordInfo: { flex: 1, gap: 2 },
   languageTag: { fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.4 },
-  word: { fontSize: 20, fontWeight: "700" },
+  word: { fontSize: 24, fontWeight: "800" },
+  koreanPronunciation: { fontSize: 17, fontWeight: "700" },
   romanization: { fontSize: 14, fontStyle: "italic" },
   rowActions: { flexDirection: "row", gap: 8 },
   iconButton: {
