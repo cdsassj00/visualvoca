@@ -1,0 +1,27 @@
+kind = "mobile"
+previewPath = "/"
+title = "Visual Vocab"
+version = "1.0.0"
+id = "artifacts/visual-vocab"
+router = "expo-domain"
+
+[[integratedSkills]]
+name = "expo"
+version = "1.0.0"
+
+[[services]]
+ensurePreviewReachable = "/status"
+name = "expo"
+paths = [ "/" ]
+localPort = 23080
+
+[services.development]
+run = "pnpm --filter @workspace/visual-vocab run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/visual-vocab", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/visual-vocab", "run", "serve" ]
+
+[services.env]
+PORT = "23080"
+BASE_PATH = "/"

@@ -1,0 +1,1 @@
+- [Expo web Alert.alert is a no-op](expo-web-alert-noop.md) — react-native-web's Alert.alert does nothing; use a platform-aware wrapper (window.confirm/alert on web) for any confirmation/error dialog that must work in web preview or e2e tests.

@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "DPICwGfMzfpnS8MzD6Ojl"
+uri = "file://artifacts/visual-vocab/assets/images/icon.png"
+type = "image"
+title = "generated_image"

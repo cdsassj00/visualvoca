@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: vocab
+    description: Visual vocabulary detection and pronunciation
 paths:
   /healthz:
     get:
@@ -24,6 +26,42 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /vocab/analyze:
+    post:
+      operationId: analyzeScene
+      tags: [vocab]
+      summary: Analyze a photo and return detected objects with vocabulary labels
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalyzeScenePayload"
+      responses:
+        "200":
+          description: Detected objects with translated vocabulary and bounding boxes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyzeSceneResult"
+  /vocab/speech:
+    post:
+      operationId: synthesizeVocabSpeech
+      tags: [vocab]
+      summary: Synthesize spoken pronunciation for a vocabulary word
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SynthesizeSpeechBody"
+      responses:
+        "200":
+          description: Base64-encoded audio of the spoken word
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SynthesizeSpeechResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +71,87 @@ components:
           type: string
       required:
         - status
+    LanguageCode:
+      type: string
+      enum: [en, ja, zh, es]
+    AnalyzeScenePayload:
+      type: object
+      properties:
+        imageBase64:
+          type: string
+          description: Base64-encoded JPEG/PNG image data (no data URI prefix)
+        language:
+          $ref: "#/components/schemas/LanguageCode"
+      required:
+        - imageBase64
+        - language
+    DetectedObject:
+      type: object
+      properties:
+        id:
+          type: string
+        englishLabel:
+          type: string
+          description: The object's name in English
+        word:
+          type: string
+          description: The object's name translated into the target language
+        romanization:
+          type: string
+          nullable: true
+          description: Romanized/phonetic reading for non-Latin scripts, null otherwise
+        boundingBox:
+          $ref: "#/components/schemas/BoundingBox"
+      required:
+        - id
+        - englishLabel
+        - word
+        - romanization
+        - boundingBox
+    BoundingBox:
+      type: object
+      description: Normalized coordinates (0 to 1) relative to image width/height
+      properties:
+        x:
+          type: number
+        y:
+          type: number
+        width:
+          type: number
+        height:
+          type: number
+      required:
+        - x
+        - y
+        - width
+        - height
+    AnalyzeSceneResult:
+      type: object
+      properties:
+        objects:
+          type: array
+          items:
+            $ref: "#/components/schemas/DetectedObject"
+      required:
+        - objects
+    SynthesizeSpeechBody:
+      type: object
+      properties:
+        text:
+          type: string
+        language:
+          $ref: "#/components/schemas/LanguageCode"
+      required:
+        - text
+        - language
+    SynthesizeSpeechResponse:
+      type: object
+      properties:
+        audioBase64:
+          type: string
+        format:
+          type: string
+      required:
+        - audioBase64
+        - format
 
