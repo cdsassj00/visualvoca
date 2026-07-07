@@ -12,5 +12,8 @@ export * from './boundingBox';
 export * from './detectedObject';
 export * from './healthStatus';
 export * from './languageCode';
+export * from './scenePhrase';
+export * from './suggestPhrasesPayload';
+export * from './suggestPhrasesResult';
 export * from './synthesizeSpeechBody';
 export * from './synthesizeSpeechResponse';

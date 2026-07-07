@@ -23,6 +23,8 @@ import type {
   AnalyzeScenePayload,
   AnalyzeSceneResult,
   HealthStatus,
+  SuggestPhrasesPayload,
+  SuggestPhrasesResult,
   SynthesizeSpeechBody,
   SynthesizeSpeechResponse
 } from './api.schemas';
@@ -200,6 +202,76 @@ export const useAnalyzeScene = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getAnalyzeSceneMutationOptions(options));
+    }
+
+export const getSuggestScenePhrasesUrl = () => {
+
+
+
+
+  return `/api/vocab/phrases`
+}
+
+/**
+ * @summary Suggest useful conversational phrases for the current scene
+ */
+export const suggestScenePhrases = async (suggestPhrasesPayload: SuggestPhrasesPayload, options?: RequestInit): Promise<SuggestPhrasesResult> => {
+
+  return customFetch<SuggestPhrasesResult>(getSuggestScenePhrasesUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(suggestPhrasesPayload)
+  }
+);}
+
+
+
+
+export const getSuggestScenePhrasesMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof suggestScenePhrases>>, TError,{data: BodyType<SuggestPhrasesPayload>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof suggestScenePhrases>>, TError,{data: BodyType<SuggestPhrasesPayload>}, TContext> => {
+
+const mutationKey = ['suggestScenePhrases'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof suggestScenePhrases>>, {data: BodyType<SuggestPhrasesPayload>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  suggestScenePhrases(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SuggestScenePhrasesMutationResult = NonNullable<Awaited<ReturnType<typeof suggestScenePhrases>>>
+    export type SuggestScenePhrasesMutationBody = BodyType<SuggestPhrasesPayload>
+    export type SuggestScenePhrasesMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Suggest useful conversational phrases for the current scene
+ */
+export const useSuggestScenePhrases = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof suggestScenePhrases>>, TError,{data: BodyType<SuggestPhrasesPayload>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof suggestScenePhrases>>,
+        TError,
+        {data: BodyType<SuggestPhrasesPayload>},
+        TContext
+      > => {
+      return useMutation(getSuggestScenePhrasesMutationOptions(options));
     }
 
 export const getSynthesizeVocabSpeechUrl = () => {

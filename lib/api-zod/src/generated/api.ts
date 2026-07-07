@@ -43,6 +43,26 @@ export const AnalyzeSceneResponse = zod.object({
 
 
 /**
+ * @summary Suggest useful conversational phrases for the current scene
+ */
+export const SuggestScenePhrasesBody = zod.object({
+  "objectLabels": zod.array(zod.string()).describe('English labels of objects detected in the scene'),
+  "language": zod.enum(['en', 'ja', 'zh', 'es'])
+})
+
+export const SuggestScenePhrasesResponse = zod.object({
+  "situation": zod.string().describe('Short Korean description of the inferred situation'),
+  "phrases": zod.array(zod.object({
+  "id": zod.string(),
+  "phrase": zod.string().describe('The conversational phrase in the target language'),
+  "meaning": zod.string().describe('Korean translation of the phrase'),
+  "romanization": zod.string().nullable().describe('Romanized\/phonetic reading for non-Latin scripts, null otherwise'),
+  "koreanPronunciation": zod.string().nullable().describe('Korean Hangul transcription of how the phrase is pronounced')
+}))
+})
+
+
+/**
  * @summary Synthesize spoken pronunciation for a vocabulary word
  */
 export const SynthesizeVocabSpeechBody = zod.object({

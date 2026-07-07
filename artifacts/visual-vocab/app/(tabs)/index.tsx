@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { DetailCard } from "@/components/DetailCard";
 import { LabelOverlay } from "@/components/LabelOverlay";
 import { LanguagePicker } from "@/components/LanguagePicker";
+import { PhrasesSheet } from "@/components/PhrasesSheet";
 import { SceneCapture } from "@/components/SceneCapture";
 import { useVocab } from "@/context/VocabContext";
 import { useColors } from "@/hooks/useColors";
@@ -22,7 +23,13 @@ import { showAlert } from "@/lib/alert";
 import { playBase64Audio } from "@/lib/audio";
 import { prepareImageForAnalysis } from "@/lib/image";
 import { DetectedObject, LanguageCode } from "@/types/vocab";
-import { useAnalyzeScene, useSynthesizeVocabSpeech } from "@workspace/api-client-react";
+import {
+  useAnalyzeScene,
+  useSuggestScenePhrases,
+  useSynthesizeVocabSpeech,
+  type ScenePhrase,
+  type SuggestPhrasesResult,
+} from "@workspace/api-client-react";
 
 type ScreenState = "camera" | "analyzing" | "results";
 
@@ -52,6 +59,12 @@ export default function ScanScreen() {
   const [liveObjects, setLiveObjects] = useState<DetectedObject[]>([]);
   const [liveStatus, setLiveStatus] = useState<"idle" | "analyzing">("idle");
   const [liveSize, setLiveSize] = useState({ width: 0, height: 0 });
+
+  const [phrasesOpen, setPhrasesOpen] = useState(false);
+  const [phrasesResult, setPhrasesResult] = useState<SuggestPhrasesResult | null>(null);
+  const [phrasesLoading, setPhrasesLoading] = useState(false);
+  const [playingPhraseId, setPlayingPhraseId] = useState<string | null>(null);
+  const phrasesCacheRef = useRef<Record<string, SuggestPhrasesResult>>({});
   const audioCacheRef = useRef(audioCache);
   audioCacheRef.current = audioCache;
   const liveModeRef = useRef(liveMode);
@@ -67,8 +80,10 @@ export default function ScanScreen() {
 
   const analyzeMutation = useAnalyzeScene();
   const speechMutation = useSynthesizeVocabSpeech();
+  const phrasesMutation = useSuggestScenePhrases();
   const analyzeAsync = analyzeMutation.mutateAsync;
   const speechAsync = speechMutation.mutateAsync;
+  const phrasesAsync = phrasesMutation.mutateAsync;
 
   const handleCapture = useCallback(
     async (uri: string) => {
@@ -139,19 +154,24 @@ export default function ScanScreen() {
     setLiveSize({ width, height });
   }, []);
 
-  const getOrFetchAudio = useCallback(
-    async (object: DetectedObject): Promise<AudioCacheEntry> => {
-      const cacheKey = `${language}:${object.word}`;
+  const getOrFetchAudioForText = useCallback(
+    async (text: string): Promise<AudioCacheEntry> => {
+      const cacheKey = `${language}:${text}`;
       const cached = audioCacheRef.current[cacheKey];
       if (cached) return cached;
       const result = await speechAsync({
-        data: { text: object.word, language },
+        data: { text, language },
       });
       const entry: AudioCacheEntry = { audioBase64: result.audioBase64, format: result.format };
       setAudioCache((prev) => ({ ...prev, [cacheKey]: entry }));
       return entry;
     },
     [speechAsync, language],
+  );
+
+  const getOrFetchAudio = useCallback(
+    (object: DetectedObject) => getOrFetchAudioForText(object.word),
+    [getOrFetchAudioForText],
   );
 
   const playObject = useCallback(
@@ -207,7 +227,61 @@ export default function ScanScreen() {
     setImageUri(null);
     setObjects([]);
     setSelectedObject(null);
+    setPhrasesOpen(false);
   }, []);
+
+  const handleOpenPhrases = useCallback(
+    async (sceneObjects: DetectedObject[]) => {
+      if (sceneObjects.length === 0) return;
+      const labels = Array.from(new Set(sceneObjects.map((o) => o.englishLabel))).sort();
+      const cacheKey = `${language}:${labels.join(",")}`;
+      setPhrasesOpen(true);
+
+      const cached = phrasesCacheRef.current[cacheKey];
+      if (cached) {
+        setPhrasesResult(cached);
+        return;
+      }
+
+      setPhrasesLoading(true);
+      setPhrasesResult(null);
+      try {
+        const result = await phrasesAsync({
+          data: { objectLabels: labels, language },
+        });
+        phrasesCacheRef.current[cacheKey] = result;
+        setPhrasesResult(result);
+      } catch (error) {
+        setPhrasesOpen(false);
+        showAlert(
+          "Couldn't load phrases",
+          error instanceof Error ? error.message : "Please try again.",
+        );
+      } finally {
+        setPhrasesLoading(false);
+      }
+    },
+    [language, phrasesAsync],
+  );
+
+  const handlePlayPhrase = useCallback(
+    async (phrase: ScenePhrase) => {
+      if (playingPhraseId) return;
+      setPlayingPhraseId(phrase.id);
+      try {
+        const entry = await getOrFetchAudioForText(phrase.phrase);
+        await playBase64Audio(entry.audioBase64, entry.format);
+      } catch (error) {
+        showAlert(
+          "Couldn't play pronunciation",
+          error instanceof Error ? error.message : "Please try again.",
+        );
+      } finally {
+        setPlayingPhraseId(null);
+      }
+    },
+    [playingPhraseId, getOrFetchAudioForText],
+  );
 
   if (screenState === "camera") {
     return (
@@ -218,7 +292,7 @@ export default function ScanScreen() {
         <View style={styles.cameraArea} onLayout={handleLiveLayout}>
           <SceneCapture
             onCapture={handleCapture}
-            live={liveMode}
+            live={liveMode && !phrasesOpen}
             onToggleLive={handleToggleLive}
             onLiveFrame={handleLiveFrame}
             liveStatus={liveStatus}
@@ -249,7 +323,27 @@ export default function ScanScreen() {
               />
             </View>
           ) : null}
+          {liveMode && liveObjects.length > 0 && !phrasesOpen ? (
+            <Pressable
+              testID="phrases-button-live"
+              style={[styles.phrasesFloatingButton, { backgroundColor: colors.accent }]}
+              onPress={() => handleOpenPhrases(liveObjects)}
+            >
+              <Feather name="message-circle" size={16} color="#ffffff" />
+              <Text style={styles.phrasesFloatingText}>회화</Text>
+            </Pressable>
+          ) : null}
         </View>
+        {phrasesOpen ? (
+          <PhrasesSheet
+            situation={phrasesResult?.situation ?? ""}
+            phrases={phrasesResult?.phrases ?? []}
+            isLoading={phrasesLoading}
+            playingPhraseId={playingPhraseId}
+            onPlay={handlePlayPhrase}
+            onClose={() => setPhrasesOpen(false)}
+          />
+        ) : null}
       </View>
     );
   }
@@ -259,14 +353,26 @@ export default function ScanScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
         <View style={[styles.languageBar, { paddingTop: insets.top + 12, paddingHorizontal: 16 }]}>
           <LanguagePicker value={language} onChange={setLanguage} disabled />
-          <Pressable
-            testID="retake-button"
-            style={[styles.retakeButton, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={handleRetake}
-          >
-            <Feather name="camera" size={16} color={colors.foreground} />
-            <Text style={[styles.retakeText, { color: colors.foreground }]}>Retake</Text>
-          </Pressable>
+          <View style={styles.topActions}>
+            {screenState === "results" && objects.length > 0 ? (
+              <Pressable
+                testID="phrases-button"
+                style={[styles.retakeButton, { backgroundColor: colors.accent, borderColor: colors.accent }]}
+                onPress={() => handleOpenPhrases(objects)}
+              >
+                <Feather name="message-circle" size={16} color="#ffffff" />
+                <Text style={[styles.retakeText, { color: "#ffffff" }]}>회화</Text>
+              </Pressable>
+            ) : null}
+            <Pressable
+              testID="retake-button"
+              style={[styles.retakeButton, { backgroundColor: colors.card, borderColor: colors.border }]}
+              onPress={handleRetake}
+            >
+              <Feather name="camera" size={16} color={colors.foreground} />
+              <Text style={[styles.retakeText, { color: colors.foreground }]}>Retake</Text>
+            </Pressable>
+          </View>
         </View>
 
         <View style={styles.imageWrapper} onLayout={handleContainerLayout}>
@@ -319,6 +425,16 @@ export default function ScanScreen() {
           </View>
         ) : null}
       </ScrollView>
+      {phrasesOpen ? (
+        <PhrasesSheet
+          situation={phrasesResult?.situation ?? ""}
+          phrases={phrasesResult?.phrases ?? []}
+          isLoading={phrasesLoading}
+          playingPhraseId={playingPhraseId}
+          onPlay={handlePlayPhrase}
+          onClose={() => setPhrasesOpen(false)}
+        />
+      ) : null}
     </View>
   );
 }
@@ -375,5 +491,32 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 16,
     right: 16,
+  },
+  topActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  phrasesFloatingButton: {
+    position: "absolute",
+    top: 12,
+    right: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 4,
+    zIndex: 20,
+  },
+  phrasesFloatingText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "700",
   },
 });

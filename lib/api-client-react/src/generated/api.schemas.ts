@@ -52,6 +52,30 @@ export interface AnalyzeSceneResult {
   objects: DetectedObject[];
 }
 
+export interface SuggestPhrasesPayload {
+  /** English labels of objects detected in the scene */
+  objectLabels: string[];
+  language: LanguageCode;
+}
+
+export interface ScenePhrase {
+  id: string;
+  /** The conversational phrase in the target language */
+  phrase: string;
+  /** Korean translation of the phrase */
+  meaning: string;
+  /** Romanized/phonetic reading for non-Latin scripts, null otherwise */
+  romanization: string | null;
+  /** Korean Hangul transcription of how the phrase is pronounced */
+  koreanPronunciation: string | null;
+}
+
+export interface SuggestPhrasesResult {
+  /** Short Korean description of the inferred situation */
+  situation: string;
+  phrases: ScenePhrase[];
+}
+
 export interface SynthesizeSpeechBody {
   text: string;
   language: LanguageCode;
