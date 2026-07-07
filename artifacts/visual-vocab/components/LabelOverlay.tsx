@@ -12,6 +12,96 @@ interface LabelOverlayProps {
   playingWord?: string | null;
   savedWords: Set<string>;
   onSelect: (object: DetectedObject) => void;
+  topInset?: number;
+}
+
+const PILL_HEIGHT = 44;
+const PILL_GAP = 6;
+const EDGE_MARGIN = 4;
+
+function estimatePillWidth(word: string): number {
+  let textWidth = 0;
+  for (const ch of word) {
+    // CJK characters render roughly twice as wide as Latin ones.
+    textWidth += ch.charCodeAt(0) > 0x2e80 ? 20 : 11;
+  }
+  // horizontal padding (32) + speaker icon (16) + gap (8)
+  return Math.max(88, Math.min(56 + textWidth, 220));
+}
+
+interface PlacedPill {
+  object: DetectedObject;
+  left: number;
+  top: number;
+  width: number;
+}
+
+function layoutPills(
+  objects: DetectedObject[],
+  containerWidth: number,
+  containerHeight: number,
+  topInset: number,
+): PlacedPill[] {
+  const sorted = [...objects].sort(
+    (a, b) =>
+      a.boundingBox.y + a.boundingBox.height / 2 - (b.boundingBox.y + b.boundingBox.height / 2),
+  );
+
+  const placed: PlacedPill[] = [];
+  for (const object of sorted) {
+    const width = estimatePillWidth(object.word);
+    const centerX = (object.boundingBox.x + object.boundingBox.width / 2) * containerWidth;
+    const centerY = (object.boundingBox.y + object.boundingBox.height / 2) * containerHeight;
+
+    const left = Math.min(
+      Math.max(centerX - width / 2, EDGE_MARGIN),
+      Math.max(containerWidth - width - EDGE_MARGIN, EDGE_MARGIN),
+    );
+    let top = Math.max(centerY - PILL_HEIGHT / 2, topInset);
+
+    // Nudge pills downward until they no longer overlap an already-placed pill.
+    let moved = true;
+    let guard = 0;
+    while (moved && guard < 20) {
+      moved = false;
+      guard += 1;
+      for (const other of placed) {
+        const horizontalOverlap =
+          left < other.left + other.width + PILL_GAP && other.left < left + width + PILL_GAP;
+        const verticalOverlap =
+          top < other.top + PILL_HEIGHT + PILL_GAP && other.top < top + PILL_HEIGHT + PILL_GAP;
+        if (horizontalOverlap && verticalOverlap) {
+          top = other.top + PILL_HEIGHT + PILL_GAP;
+          moved = true;
+        }
+      }
+    }
+    const maxTop = Math.max(containerHeight - PILL_HEIGHT - EDGE_MARGIN, topInset);
+    if (top > maxTop) {
+      // Ran off the bottom — walk upward instead so pills near the bottom
+      // edge don't stack on the same clamped row.
+      top = maxTop;
+      let movedUp = true;
+      let upGuard = 0;
+      while (movedUp && upGuard < 20 && top > topInset) {
+        movedUp = false;
+        upGuard += 1;
+        for (const other of placed) {
+          const horizontalOverlap =
+            left < other.left + other.width + PILL_GAP && other.left < left + width + PILL_GAP;
+          const verticalOverlap =
+            top < other.top + PILL_HEIGHT + PILL_GAP && other.top < top + PILL_HEIGHT + PILL_GAP;
+          if (horizontalOverlap && verticalOverlap) {
+            top = Math.max(other.top - PILL_HEIGHT - PILL_GAP, topInset);
+            movedUp = true;
+          }
+        }
+      }
+    }
+
+    placed.push({ object, left, top, width });
+  }
+  return placed;
 }
 
 export function LabelOverlay({
@@ -22,19 +112,20 @@ export function LabelOverlay({
   playingWord = null,
   savedWords,
   onSelect,
+  topInset = 8,
 }: LabelOverlayProps) {
   const colors = useColors();
 
   if (containerWidth <= 0 || containerHeight <= 0) return null;
 
+  const pills = layoutPills(objects, containerWidth, containerHeight, topInset);
+
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-      {objects.map((object) => {
+      {pills.map(({ object, left, top, width }) => {
         const isSelected = object.word === selectedWord;
         const isPlaying = object.word === playingWord;
         const isSaved = savedWords.has(object.word);
-        const centerX = (object.boundingBox.x + object.boundingBox.width / 2) * containerWidth;
-        const top = object.boundingBox.y * containerHeight;
 
         return (
           <Pressable
@@ -44,8 +135,9 @@ export function LabelOverlay({
             style={[
               styles.pill,
               {
-                left: centerX,
-                top: Math.max(top - 48, 8),
+                left,
+                top,
+                width,
                 backgroundColor: isSelected ? colors.primary : colors.accent,
                 borderColor: "#ffffff",
               },
@@ -70,15 +162,14 @@ export function LabelOverlay({
 const styles = StyleSheet.create({
   pill: {
     position: "absolute",
+    height: PILL_HEIGHT,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 22,
+    paddingHorizontal: 12,
+    borderRadius: PILL_HEIGHT / 2,
     borderWidth: 1.5,
-    transform: [{ translateX: -60 }],
-    maxWidth: 220,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -89,6 +180,7 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 19,
     fontWeight: "800",
+    flexShrink: 1,
   },
   savedDot: {
     width: 7,

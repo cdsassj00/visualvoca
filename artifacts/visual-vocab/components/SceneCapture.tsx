@@ -18,7 +18,9 @@ interface SceneCaptureProps {
   overlay?: ReactNode;
 }
 
-const LIVE_FRAME_DELAY_MS = 700;
+// Live mode analyzes one frame every 10 seconds to keep costs low and
+// give the user time to read the labels before they refresh.
+const LIVE_FRAME_DELAY_MS = 10000;
 
 export function SceneCapture({
   onCapture,

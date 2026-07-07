@@ -299,13 +299,14 @@ export default function ScanScreen() {
             overlay={
               liveMode && liveObjects.length > 0 ? (
                 <LabelOverlay
-                  objects={liveObjects}
+                  objects={liveObjects.slice(0, 6)}
                   containerWidth={liveSize.width}
                   containerHeight={liveSize.height}
                   selectedWord={selectedObject?.word ?? null}
                   playingWord={playingWord}
                   savedWords={savedWordSet}
                   onSelect={handleSelectObject}
+                  topInset={56}
                 />
               ) : null
             }
