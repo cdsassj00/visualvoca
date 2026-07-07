@@ -108,6 +108,85 @@ router.post("/vocab/analyze", async (req: Request, res: Response) => {
   }
 });
 
+interface ScenePhrasePayload {
+  id: string;
+  phrase: string;
+  meaning: string;
+  romanization: string | null;
+  koreanPronunciation: string | null;
+}
+
+router.post("/vocab/phrases", async (req: Request, res: Response) => {
+  const { objectLabels, language } = req.body as {
+    objectLabels?: string[];
+    language?: string;
+  };
+
+  if (!Array.isArray(objectLabels) || objectLabels.length === 0) {
+    res.status(400).json({ error: "objectLabels is required" });
+    return;
+  }
+
+  const languageName = language ? LANGUAGE_NAMES[language] : undefined;
+  if (!languageName) {
+    res.status(400).json({ error: "Unsupported language" });
+    return;
+  }
+
+  try {
+    const needsRomanization = NEEDS_ROMANIZATION.has(language as string);
+    const labels = objectLabels.slice(0, 12).join(", ");
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-5.4",
+      max_completion_tokens: 2048,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a conversation coach for a Korean-speaking language learner. Given a list of objects visible around the learner, infer the most likely real-world situation (e.g. cafe, kitchen, office, street) and suggest 5 short, practical conversational phrases in the target language that the learner would actually say in that situation. Keep phrases short (3-10 words), natural, and immediately useful. " +
+            (needsRomanization
+              ? "Provide a romanized/phonetic reading for each phrase."
+              : "Set romanization to null.") +
+            " For koreanPronunciation, transcribe how each phrase is pronounced using Korean Hangul (외래어 표기). For situation and meaning, write natural Korean." +
+            ' Respond ONLY with JSON: { "situation": string (short Korean description of the situation), "phrases": [ { "phrase": string, "meaning": string (Korean translation), "romanization": string|null, "koreanPronunciation": string|null } ] }',
+        },
+        {
+          role: "user",
+          content: `Objects visible in the scene: ${labels}. Target language: ${languageName}. Suggest situational phrases.`,
+        },
+      ],
+    });
+
+    const raw = response.choices[0]?.message?.content ?? "{}";
+    const parsed = JSON.parse(raw) as {
+      situation?: string;
+      phrases?: Array<{
+        phrase?: string;
+        meaning?: string;
+        romanization?: string | null;
+        koreanPronunciation?: string | null;
+      }>;
+    };
+
+    const phrases: ScenePhrasePayload[] = (parsed.phrases ?? [])
+      .filter((p) => p.phrase && p.meaning)
+      .map((p, index) => ({
+        id: `phrase-${Date.now()}-${index}`,
+        phrase: p.phrase as string,
+        meaning: p.meaning as string,
+        romanization: p.romanization ?? null,
+        koreanPronunciation: p.koreanPronunciation ?? null,
+      }));
+
+    res.json({ situation: parsed.situation ?? "", phrases });
+  } catch (err) {
+    logger.error({ err }, "Failed to suggest phrases");
+    res.status(500).json({ error: "Failed to suggest phrases" });
+  }
+});
+
 router.post("/vocab/speech", async (req: Request, res: Response) => {
   const { text, language } = req.body as { text?: string; language?: string };
 

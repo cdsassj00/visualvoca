@@ -44,6 +44,24 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AnalyzeSceneResult"
+  /vocab/phrases:
+    post:
+      operationId: suggestScenePhrases
+      tags: [vocab]
+      summary: Suggest useful conversational phrases for the current scene
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SuggestPhrasesPayload"
+      responses:
+        "200":
+          description: Conversational phrases relevant to the detected scene
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuggestPhrasesResult"
   /vocab/speech:
     post:
       operationId: synthesizeVocabSpeech
@@ -139,6 +157,57 @@ components:
             $ref: "#/components/schemas/DetectedObject"
       required:
         - objects
+    SuggestPhrasesPayload:
+      type: object
+      properties:
+        objectLabels:
+          type: array
+          description: English labels of objects detected in the scene
+          items:
+            type: string
+        language:
+          $ref: "#/components/schemas/LanguageCode"
+      required:
+        - objectLabels
+        - language
+    ScenePhrase:
+      type: object
+      properties:
+        id:
+          type: string
+        phrase:
+          type: string
+          description: The conversational phrase in the target language
+        meaning:
+          type: string
+          description: Korean translation of the phrase
+        romanization:
+          type: string
+          nullable: true
+          description: Romanized/phonetic reading for non-Latin scripts, null otherwise
+        koreanPronunciation:
+          type: string
+          nullable: true
+          description: Korean Hangul transcription of how the phrase is pronounced
+      required:
+        - id
+        - phrase
+        - meaning
+        - romanization
+        - koreanPronunciation
+    SuggestPhrasesResult:
+      type: object
+      properties:
+        situation:
+          type: string
+          description: Short Korean description of the inferred situation
+        phrases:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScenePhrase"
+      required:
+        - situation
+        - phrases
     SynthesizeSpeechBody:
       type: object
       properties:
