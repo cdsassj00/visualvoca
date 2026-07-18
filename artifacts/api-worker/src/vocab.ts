@@ -18,6 +18,7 @@ interface DetectedObjectPayload {
   word: string;
   romanization: string | null;
   koreanPronunciation: string | null;
+  koreanMeaning: string | null;
   boundingBox: { x: number; y: number; width: number; height: number };
 }
 
@@ -60,7 +61,8 @@ vocab.post("/vocab/analyze", async (c) => {
               ? "Also provide a romanized/phonetic reading of the translated word."
               : "Set romanization to null.") +
             " For koreanPronunciation, transcribe how the translated word is pronounced using Korean Hangul (외래어 표기, e.g. ノートパソコン → 노토파소콘, laptop → 랩톱)." +
-            ' Respond ONLY with JSON: { "objects": [ { "englishLabel": string, "word": string, "romanization": string|null, "koreanPronunciation": string|null, "boundingBox": { "x": number, "y": number, "width": number, "height": number } } ] }',
+            " For koreanMeaning, give what the object is actually called in Korean — its meaning, not its sound (e.g. メガネ → 안경, laptop → 노트북)." +
+            ' Respond ONLY with JSON: { "objects": [ { "englishLabel": string, "word": string, "romanization": string|null, "koreanPronunciation": string|null, "koreanMeaning": string|null, "boundingBox": { "x": number, "y": number, "width": number, "height": number } } ] }',
         },
         {
           role: "user",
@@ -85,6 +87,7 @@ vocab.post("/vocab/analyze", async (c) => {
         word?: string;
         romanization?: string | null;
         koreanPronunciation?: string | null;
+        koreanMeaning?: string | null;
         boundingBox?: { x?: number; y?: number; width?: number; height?: number };
       }>;
     };
@@ -97,6 +100,7 @@ vocab.post("/vocab/analyze", async (c) => {
         word: o.word as string,
         romanization: o.romanization ?? null,
         koreanPronunciation: o.koreanPronunciation ?? null,
+        koreanMeaning: o.koreanMeaning ?? null,
         boundingBox: {
           x: clamp01(o.boundingBox?.x ?? 0),
           y: clamp01(o.boundingBox?.y ?? 0),

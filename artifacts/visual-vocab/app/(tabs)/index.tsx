@@ -421,20 +421,6 @@ export default function ScanScreen() {
           </View>
         ) : null}
 
-        {selectedObject ? (
-          <View style={styles.detailWrapper}>
-            <DetailCard
-              object={selectedObject}
-              isSaved={isSaved(selectedObject.word, language)}
-              isPlaying={isPlaying}
-              isSaving={isSaving}
-              onPlay={handlePlay}
-              onSave={handleSave}
-              onClose={() => setSelectedObject(null)}
-            />
-          </View>
-        ) : null}
-
         {screenState === "results" && objects.length > 0 ? (
           <PhrasesPanel
             situation={phrasesResult?.situation ?? ""}
@@ -445,6 +431,24 @@ export default function ScanScreen() {
           />
         ) : null}
       </ScrollView>
+
+      {/* Tapping a label opens the word card as a centered popup so it's
+          visible immediately without scrolling. */}
+      {selectedObject ? (
+        <Pressable style={styles.detailBackdrop} onPress={() => setSelectedObject(null)}>
+          <Pressable style={styles.detailModal} onPress={() => {}}>
+            <DetailCard
+              object={selectedObject}
+              isSaved={isSaved(selectedObject.word, language)}
+              isPlaying={isPlaying}
+              isSaving={isSaving}
+              onPlay={handlePlay}
+              onSave={handleSave}
+              onClose={() => setSelectedObject(null)}
+            />
+          </Pressable>
+        </Pressable>
+      ) : null}
       {phrasesOpen ? (
         <PhrasesSheet
           situation={phrasesResult?.situation ?? ""}
@@ -506,6 +510,18 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 15, textAlign: "center" },
   detailWrapper: {
     padding: 16,
+  },
+  detailBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    zIndex: 40,
+  },
+  detailModal: {
+    width: "100%",
+    maxWidth: 440,
   },
   liveDetailWrapper: {
     position: "absolute",

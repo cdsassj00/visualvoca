@@ -17,5 +17,7 @@ export interface DetectedObject {
   romanization: string | null;
   /** Korean Hangul transcription of how the word is pronounced */
   koreanPronunciation: string | null;
+  /** What the object is called in Korean (its meaning, e.g. 안경) */
+  koreanMeaning: string | null;
   boundingBox: BoundingBox;
 }

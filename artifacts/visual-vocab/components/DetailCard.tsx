@@ -35,6 +35,11 @@ export function DetailCard({
         {object.englishLabel}
       </Text>
       <Text style={[styles.word, { color: colors.foreground }]}>{object.word}</Text>
+      {object.koreanMeaning ? (
+        <Text style={[styles.koreanMeaning, { color: colors.accent }]}>
+          뜻: {object.koreanMeaning}
+        </Text>
+      ) : null}
       {object.koreanPronunciation ? (
         <Text style={[styles.koreanPronunciation, { color: colors.primary }]}>
           {object.koreanPronunciation}
@@ -119,10 +124,15 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     marginTop: 2,
   },
+  koreanMeaning: {
+    fontSize: 22,
+    fontWeight: "800",
+    marginTop: 6,
+  },
   koreanPronunciation: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "700",
-    marginTop: 2,
+    marginTop: 4,
   },
   romanization: {
     fontSize: 16,

@@ -122,6 +122,10 @@ components:
           type: string
           nullable: true
           description: Korean Hangul transcription of how the word is pronounced
+        koreanMeaning:
+          type: string
+          nullable: true
+          description: What the object is called in Korean (its meaning, e.g. 안경)
         boundingBox:
           $ref: "#/components/schemas/BoundingBox"
       required:
@@ -130,6 +134,7 @@ components:
         - word
         - romanization
         - koreanPronunciation
+        - koreanMeaning
         - boundingBox
     BoundingBox:
       type: object
