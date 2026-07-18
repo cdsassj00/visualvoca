@@ -120,10 +120,10 @@ export function SceneCapture({
       <View style={[styles.center, { backgroundColor: colors.background, paddingHorizontal: 32 }]}>
         <Feather name="camera" size={40} color={colors.mutedForeground} />
         <Text style={[styles.permissionTitle, { color: colors.foreground }]}>
-          Camera access needed
+          카메라 사용 권한이 필요해요
         </Text>
         <Text style={[styles.permissionBody, { color: colors.mutedForeground }]}>
-          Visual Vocab uses your camera to identify objects around you and teach you their names.
+          Visual Vocab은 카메라로 주변 사물을 알아보고 그 이름을 알려 드려요.
         </Text>
         {permission.canAskAgain ? (
           <Pressable
@@ -132,7 +132,7 @@ export function SceneCapture({
             onPress={requestPermission}
           >
             <Text style={[styles.permissionButtonText, { color: colors.primaryForeground }]}>
-              Enable Camera
+              카메라 켜기
             </Text>
           </Pressable>
         ) : Platform.OS !== "web" ? (
@@ -141,13 +141,13 @@ export function SceneCapture({
             onPress={() => Linking.openSettings().catch(() => {})}
           >
             <Text style={[styles.permissionButtonText, { color: colors.primaryForeground }]}>
-              Open Settings
+              설정 열기
             </Text>
           </Pressable>
         ) : null}
         <Pressable style={styles.galleryFallback} onPress={handlePickFromGallery}>
           <Text style={[styles.galleryFallbackText, { color: colors.primary }]}>
-            Choose a photo instead
+            앨범에서 사진 선택하기
           </Text>
         </Pressable>
       </View>
@@ -174,7 +174,7 @@ export function SceneCapture({
         <View style={[styles.liveBadge, { top: 16 }]} pointerEvents="none">
           <View style={styles.liveDot} />
           <Text style={styles.liveBadgeText}>
-            {liveStatus === "analyzing" ? "LIVE · scanning…" : "LIVE"}
+            {liveStatus === "analyzing" ? "LIVE · 인식 중…" : "LIVE"}
           </Text>
         </View>
       ) : null}

@@ -1,0 +1,28 @@
+{
+  // Cloudflare Workers 백엔드 — Visual Vocab API
+  //
+  // 배포 준비:
+  //   1. pnpm --filter @workspace/api-worker exec wrangler login
+  //   2. pnpm --filter @workspace/api-worker exec wrangler kv namespace create USAGE_KV
+  //      → 출력된 id를 아래 kv_namespaces[0].id에 붙여넣기
+  //   3. 시크릿 등록 (절대 코드/vars에 넣지 말 것):
+  //      wrangler secret put OPENAI_API_KEY
+  //      wrangler secret put APP_TOKEN        # 앱이 보낼 Bearer 토큰 (긴 랜덤 문자열)
+  //   4. pnpm --filter @workspace/api-worker run deploy
+  "name": "visualvoca-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-06-01",
+  "kv_namespaces": [
+    {
+      "binding": "USAGE_KV",
+      "id": "REPLACE_WITH_KV_NAMESPACE_ID"
+    }
+  ],
+  "vars": {
+    "OPENAI_BASE_URL": "https://api.openai.com/v1",
+    "OPENAI_MODEL": "gpt-5.4",
+    "OPENAI_TTS_MODEL": "gpt-4o-mini-tts",
+    // 무료 티어 일일 스캔 한도 (IP 기준). 비용 상한 장치.
+    "FREE_DAILY_SCANS": "30"
+  }
+}

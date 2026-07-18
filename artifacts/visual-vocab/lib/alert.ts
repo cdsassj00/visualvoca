@@ -31,7 +31,7 @@ export function confirmDestructive(
     return;
   }
   Alert.alert(title, message, [
-    { text: "Cancel", style: "cancel" },
+    { text: "취소", style: "cancel" },
     { text: confirmLabel, style: "destructive", onPress: onConfirm },
   ]);
 }

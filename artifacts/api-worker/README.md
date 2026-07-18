@@ -1,0 +1,53 @@
+# @workspace/api-worker — Cloudflare Workers 백엔드
+
+Express 서버(`artifacts/api-server`)와 동일한 API(`/api/healthz`, `/api/vocab/analyze|phrases|speech`)를 Cloudflare Workers + Hono로 제공한다. 생성된 앱 클라이언트(`@workspace/api-client-react`)를 그대로 쓸 수 있도록 요청/응답 형태를 맞췄다.
+
+**왜 Workers인가:** 서버 상시 구동 비용이 없다. 무료 티어(일 10만 요청)로 시작하고, 유료여도 월 $5 수준. 실제 비용의 대부분은 OpenAI API 호출이므로 이 워커에 두 가지 가드레일을 넣었다:
+
+- **APP_TOKEN 인증** — `/api/vocab/*`는 `Authorization: Bearer <APP_TOKEN>` 필수. 토큰 없이 배포하면 아무나 내 OpenAI 크레딧을 소모할 수 있다.
+- **일일 스캔 한도** — 비전 분석(`/analyze`)만 IP당 하루 `FREE_DAILY_SCANS`회(기본 30). 초과 시 429 + `DAILY_LIMIT_REACHED`. KV 카운터(48시간 TTL) 기반 소프트 한도.
+
+## 배포
+
+```bash
+pnpm --filter @workspace/api-worker exec wrangler login
+pnpm --filter @workspace/api-worker exec wrangler kv namespace create USAGE_KV
+# → 출력된 id를 wrangler.jsonc의 kv_namespaces[0].id에 반영
+
+cd artifacts/api-worker
+pnpm exec wrangler secret put OPENAI_API_KEY   # OpenAI API 키
+pnpm exec wrangler secret put APP_TOKEN        # 긴 랜덤 문자열 (openssl rand -hex 32)
+
+pnpm run deploy
+```
+
+배포 후 나오는 `https://visualvoca-api.<계정>.workers.dev`가 API 주소다.
+
+## 앱 연결
+
+Expo 앱 빌드/실행 시 환경변수 두 개를 준다:
+
+```bash
+EXPO_PUBLIC_API_URL=https://visualvoca-api.<계정>.workers.dev
+EXPO_PUBLIC_APP_TOKEN=<APP_TOKEN 시크릿과 같은 값>
+```
+
+`app/_layout.tsx`가 `EXPO_PUBLIC_API_URL`이 있으면 그 주소를, 없으면 기존 Replit 도메인을 사용한다.
+
+## 로컬 개발
+
+```bash
+# .dev.vars 파일에 OPENAI_API_KEY, APP_TOKEN 작성 (gitignore됨)
+pnpm --filter @workspace/api-worker run dev
+```
+
+## 환경변수
+
+| 이름 | 종류 | 기본값 | 설명 |
+|---|---|---|---|
+| `OPENAI_API_KEY` | secret | — | OpenAI API 키 |
+| `APP_TOKEN` | secret | — | 앱 인증 토큰 |
+| `OPENAI_BASE_URL` | var | `https://api.openai.com/v1` | 프록시 사용 시 교체 |
+| `OPENAI_MODEL` | var | `gpt-5.4` | 비전/회화 모델. 비용 절감이 필요하면 더 저렴한 티어로 교체 |
+| `OPENAI_TTS_MODEL` | var | `gpt-4o-mini-tts` | TTS 모델 |
+| `FREE_DAILY_SCANS` | var | `30` | IP당 일일 무료 스캔 한도. `0` 이하면 한도 해제 |

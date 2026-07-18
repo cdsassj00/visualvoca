@@ -1,0 +1,11 @@
+export interface Env {
+  USAGE_KV: KVNamespace;
+  /** wrangler secret put OPENAI_API_KEY */
+  OPENAI_API_KEY: string;
+  /** wrangler secret put APP_TOKEN — 모바일 앱이 보내는 Bearer 토큰 */
+  APP_TOKEN: string;
+  OPENAI_BASE_URL: string;
+  OPENAI_MODEL: string;
+  OPENAI_TTS_MODEL: string;
+  FREE_DAILY_SCANS: string;
+}

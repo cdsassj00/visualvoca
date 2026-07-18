@@ -23,8 +23,8 @@ export default function SavedScreen() {
         await playBase64Audio(word.audioBase64, word.audioFormat);
       } catch (error) {
         showAlert(
-          "Couldn't play pronunciation",
-          error instanceof Error ? error.message : "Please try again.",
+          "발음을 재생하지 못했어요",
+          error instanceof Error ? error.message : "다시 시도해 주세요.",
         );
       } finally {
         setPlayingId(null);
@@ -36,9 +36,9 @@ export default function SavedScreen() {
   const handleRemove = useCallback(
     (word: SavedWord) => {
       confirmDestructive(
-        "Remove word?",
-        `Remove "${word.word}" from your saved list.`,
-        "Remove",
+        "단어를 삭제할까요?",
+        `"${word.word}" 단어를 단어장에서 삭제해요.`,
+        "삭제",
         () => removeWord(word.id),
       );
     },
@@ -57,9 +57,9 @@ export default function SavedScreen() {
     return (
       <View style={[styles.center, { backgroundColor: colors.background, paddingHorizontal: 32 }]}>
         <Feather name="bookmark" size={36} color={colors.mutedForeground} />
-        <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No saved words yet</Text>
+        <Text style={[styles.emptyTitle, { color: colors.foreground }]}>저장한 단어가 없어요</Text>
         <Text style={[styles.emptyBody, { color: colors.mutedForeground }]}>
-          Scan an object and tap "Save" to build your vocab list. Saved words work offline.
+          사물을 스캔하고 "저장"을 누르면 나만의 단어장이 만들어져요. 저장한 단어는 오프라인에서도 들을 수 있어요.
         </Text>
       </View>
     );
