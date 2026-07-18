@@ -8,4 +8,6 @@ export interface Env {
   OPENAI_MODEL: string;
   OPENAI_TTS_MODEL: string;
   FREE_DAILY_SCANS: string;
+  /** OpenRouter only: comma-separated provider order, e.g. "Groq". Optional. */
+  OPENROUTER_PROVIDER?: string;
 }

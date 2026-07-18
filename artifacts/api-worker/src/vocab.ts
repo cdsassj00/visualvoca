@@ -55,7 +55,7 @@ vocab.post("/vocab/analyze", async (c) => {
         {
           role: "system",
           content:
-            "You are a vision assistant for a language-learning app. Identify the 5-10 most prominent, clearly identifiable physical objects in the photo. For each object return its English name, its translation into the target language, and a normalized bounding box (values 0 to 1) tightly framing the object relative to image width and height, where x/y is the top-left corner. " +
+            "You are a vision assistant for a language-learning app. Identify up to 5 of the most prominent, clearly identifiable physical objects in the photo. For each object return its English name, its translation into the target language, and a normalized bounding box (values 0 to 1) tightly framing the object relative to image width and height, where x/y is the top-left corner. " +
             (needsRomanization
               ? "Also provide a romanized/phonetic reading of the translated word."
               : "Set romanization to null.") +
@@ -76,7 +76,7 @@ vocab.post("/vocab/analyze", async (c) => {
           ],
         },
       ],
-      4096,
+      1536,
     );
 
     const parsed = JSON.parse(raw) as {
@@ -149,7 +149,7 @@ vocab.post("/vocab/phrases", async (c) => {
           content: `Objects visible in the scene: ${labels}. Target language: ${languageName}. Suggest situational phrases.`,
         },
       ],
-      2048,
+      1200,
     );
 
     const parsed = JSON.parse(raw) as {
