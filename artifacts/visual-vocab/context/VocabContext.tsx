@@ -77,6 +77,7 @@ export function VocabProvider({ children }: { children: ReactNode }) {
         word: object.word,
         romanization: object.romanization,
         koreanPronunciation: object.koreanPronunciation,
+        koreanMeaning: object.koreanMeaning,
         language,
         audioBase64,
         audioFormat,

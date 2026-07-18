@@ -32,6 +32,7 @@ export const AnalyzeSceneResponse = zod.object({
   "word": zod.string().describe('The object\'s name translated into the target language'),
   "romanization": zod.string().nullable().describe('Romanized\/phonetic reading for non-Latin scripts, null otherwise'),
   "koreanPronunciation": zod.string().nullable().describe('Korean Hangul transcription of how the word is pronounced'),
+  "koreanMeaning": zod.string().nullable().describe('What the object is called in Korean (its meaning, e.g. 안경)'),
   "boundingBox": zod.object({
   "x": zod.number(),
   "y": zod.number(),

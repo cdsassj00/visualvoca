@@ -28,6 +28,7 @@ export interface DetectedObject {
   word: string;
   romanization: string | null;
   koreanPronunciation: string | null;
+  koreanMeaning: string | null;
   boundingBox: BoundingBox;
 }
 
@@ -37,6 +38,7 @@ export interface SavedWord {
   word: string;
   romanization: string | null;
   koreanPronunciation?: string | null;
+  koreanMeaning?: string | null;
   language: LanguageCode;
   audioBase64: string;
   audioFormat: string;
