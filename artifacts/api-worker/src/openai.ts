@@ -67,7 +67,10 @@ export async function textToSpeechBase64(env: Env, text: string): Promise<string
     },
     body: JSON.stringify({
       model: env.OPENAI_TTS_MODEL,
-      voice: "alloy",
+      // Voice is provider-specific. "alloy" works for OpenAI TTS (incl. via
+      // OpenRouter); set OPENAI_TTS_VOICE to a provider's voice id when using
+      // another TTS model (Grok Voice, MiniMax, Gemini, …).
+      voice: env.OPENAI_TTS_VOICE ?? "alloy",
       input: text,
       response_format: "mp3",
     }),

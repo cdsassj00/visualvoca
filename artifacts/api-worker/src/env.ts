@@ -10,4 +10,6 @@ export interface Env {
   FREE_DAILY_SCANS: string;
   /** OpenRouter only: comma-separated provider order, e.g. "Groq". Optional. */
   OPENROUTER_PROVIDER?: string;
+  /** TTS voice id (provider-specific). Defaults to "alloy" (OpenAI). Optional. */
+  OPENAI_TTS_VOICE?: string;
 }

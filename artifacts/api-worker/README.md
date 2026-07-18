@@ -50,4 +50,22 @@ pnpm --filter @workspace/api-worker run dev
 | `OPENAI_BASE_URL` | var | `https://api.openai.com/v1` | 프록시 사용 시 교체 |
 | `OPENAI_MODEL` | var | `gpt-5.4` | 비전/회화 모델. 비용 절감이 필요하면 더 저렴한 티어로 교체 |
 | `OPENAI_TTS_MODEL` | var | `gpt-4o-mini-tts` | TTS 모델 |
+| `OPENAI_TTS_VOICE` | var | (없음→`alloy`) | TTS 보이스 id. 다른 제공사 TTS 쓸 때 그쪽 보이스로 |
+| `OPENROUTER_PROVIDER` | var | (없음) | OpenRouter 전용. 상위 프로바이더 고정, 예: `Groq` |
 | `FREE_DAILY_SCANS` | var | `30` | IP당 일일 무료 스캔 한도. `0` 이하면 한도 해제 |
+
+## OpenRouter로 전환 (모델 A/B 테스트·저지연)
+
+OpenRouter는 비전(`/chat/completions`)과 TTS(`/audio/speech`) 모두 OpenAI 호환이라 **코드 수정 없이 env만** 바꾸면 된다. 모델명만 바꿔가며 제일 빠른/싼 모델을 실험할 수 있다.
+
+```
+OPENAI_BASE_URL   = https://openrouter.ai/api/v1
+OPENAI_API_KEY    = <OpenRouter 키, sk-or-v1-...>
+OPENAI_MODEL      = google/gemini-2.5-flash-lite   # 비전 지원 모델
+OPENAI_TTS_MODEL  = openai/gpt-4o-mini-tts         # voice=alloy 그대로 사용 가능
+OPENROUTER_PROVIDER = Groq                          # (선택) 비전 최저 지연
+```
+
+- `OPENAI_MODEL` 은 반드시 **비전(이미지 입력) 지원 모델**이어야 한다.
+- OpenAI 이외 TTS(Grok Voice, MiniMax 등)를 쓰면 `OPENAI_TTS_VOICE` 를 그 제공사 보이스 id로 설정.
+- 저지연 확정 후에는 해당 제공사에 직접 붙어(프록시 홉 제거) 마지막 지연까지 줄일 수 있다.
