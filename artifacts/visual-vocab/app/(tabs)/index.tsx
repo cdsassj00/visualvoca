@@ -102,8 +102,8 @@ export default function ScanScreen() {
         setScreenState("results");
       } catch (error) {
         showAlert(
-          "Couldn't analyze photo",
-          error instanceof Error ? error.message : "Something went wrong. Please try again.",
+          "사진을 분석하지 못했어요",
+          error instanceof Error ? error.message : "문제가 생겼어요. 다시 시도해 주세요.",
         );
         setScreenState("camera");
       }
@@ -184,8 +184,8 @@ export default function ScanScreen() {
         await playBase64Audio(entry.audioBase64, entry.format);
       } catch (error) {
         showAlert(
-          "Couldn't play pronunciation",
-          error instanceof Error ? error.message : "Please try again.",
+          "발음을 재생하지 못했어요",
+          error instanceof Error ? error.message : "다시 시도해 주세요.",
         );
       } finally {
         setIsPlaying(false);
@@ -216,7 +216,7 @@ export default function ScanScreen() {
       const entry = await getOrFetchAudio(selectedObject);
       await saveWord(selectedObject, language, entry.audioBase64, entry.format);
     } catch (error) {
-      showAlert("Couldn't save word", error instanceof Error ? error.message : "Please try again.");
+      showAlert("단어를 저장하지 못했어요", error instanceof Error ? error.message : "다시 시도해 주세요.");
     } finally {
       setIsSaving(false);
     }
@@ -254,8 +254,8 @@ export default function ScanScreen() {
       } catch (error) {
         setPhrasesOpen(false);
         showAlert(
-          "Couldn't load phrases",
-          error instanceof Error ? error.message : "Please try again.",
+          "회화 표현을 불러오지 못했어요",
+          error instanceof Error ? error.message : "다시 시도해 주세요.",
         );
       } finally {
         setPhrasesLoading(false);
@@ -273,8 +273,8 @@ export default function ScanScreen() {
         await playBase64Audio(entry.audioBase64, entry.format);
       } catch (error) {
         showAlert(
-          "Couldn't play pronunciation",
-          error instanceof Error ? error.message : "Please try again.",
+          "발음을 재생하지 못했어요",
+          error instanceof Error ? error.message : "다시 시도해 주세요.",
         );
       } finally {
         setPlayingPhraseId(null);
@@ -371,7 +371,7 @@ export default function ScanScreen() {
               onPress={handleRetake}
             >
               <Feather name="camera" size={16} color={colors.foreground} />
-              <Text style={[styles.retakeText, { color: colors.foreground }]}>Retake</Text>
+              <Text style={[styles.retakeText, { color: colors.foreground }]}>다시 찍기</Text>
             </Pressable>
           </View>
         </View>
@@ -388,7 +388,7 @@ export default function ScanScreen() {
           {screenState === "analyzing" ? (
             <View style={styles.analyzingOverlay}>
               <ActivityIndicator color="#ffffff" size="large" />
-              <Text style={styles.analyzingText}>Identifying objects…</Text>
+              <Text style={styles.analyzingText}>사물을 알아보는 중…</Text>
             </View>
           ) : (
             <LabelOverlay
@@ -407,7 +407,7 @@ export default function ScanScreen() {
           <View style={styles.emptyState}>
             <Feather name="search" size={28} color={colors.mutedForeground} />
             <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-              No objects recognized. Try a clearer shot with more light.
+              알아본 사물이 없어요. 밝은 곳에서 또렷하게 다시 찍어 보세요.
             </Text>
           </View>
         ) : null}

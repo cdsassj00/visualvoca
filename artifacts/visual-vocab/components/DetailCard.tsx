@@ -58,7 +58,7 @@ export function DetailCard({
           ) : (
             <Feather name="volume-2" size={20} color={colors.primaryForeground} />
           )}
-          <Text style={[styles.actionText, { color: colors.primaryForeground }]}>Listen</Text>
+          <Text style={[styles.actionText, { color: colors.primaryForeground }]}>듣기</Text>
         </Pressable>
 
         <Pressable
@@ -87,7 +87,7 @@ export function DetailCard({
               { color: isSaved ? colors.secondaryForeground : "#ffffff" },
             ]}
           >
-            {isSaved ? "Saved" : "Save"}
+            {isSaved ? "저장됨" : "저장"}
           </Text>
         </Pressable>
       </View>

@@ -6,7 +6,7 @@ import {
   useFonts,
 } from "@expo-google-fonts/inter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { setBaseUrl } from "@workspace/api-client-react";
+import { setAuthTokenGetter, setBaseUrl } from "@workspace/api-client-react";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
@@ -20,7 +20,9 @@ import { VocabProvider } from "@/context/VocabContext";
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
-setBaseUrl(`https://${process.env.EXPO_PUBLIC_DOMAIN}`);
+// EXPO_PUBLIC_API_URL이 있으면 Cloudflare Workers 백엔드를, 없으면 Replit 도메인을 사용.
+setBaseUrl(process.env.EXPO_PUBLIC_API_URL ?? `https://${process.env.EXPO_PUBLIC_DOMAIN}`);
+setAuthTokenGetter(() => process.env.EXPO_PUBLIC_APP_TOKEN ?? null);
 
 const queryClient = new QueryClient();
 
