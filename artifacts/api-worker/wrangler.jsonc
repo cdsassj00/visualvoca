@@ -9,7 +9,7 @@
   //      wrangler secret put OPENAI_API_KEY
   //      wrangler secret put APP_TOKEN        # 앱이 보낼 Bearer 토큰 (긴 랜덤 문자열)
   //   4. pnpm --filter @workspace/api-worker run deploy
-  "name": "visualvoca-api",
+  "name": "visualvoca",
   "main": "src/index.ts",
   "compatibility_date": "2026-06-01",
   "kv_namespaces": [

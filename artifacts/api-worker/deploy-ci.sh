@@ -6,6 +6,9 @@
 # 그래서 배포 후 wrangler secret 로 런타임 시크릿을 심어준다. (이미 있으면 갱신)
 set -e
 
+# 루트 디렉터리 설정과 무관하게 이 스크립트가 있는 폴더(=워커 패키지)에서 실행.
+cd "$(dirname "$0")"
+
 pnpm exec wrangler deploy
 
 if [ -n "$OPENAI_API_KEY" ]; then
