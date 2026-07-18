@@ -122,6 +122,35 @@ export function LabelOverlay({
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+      {/*
+        Draw each detected region as a soft box. AI vision coordinates are only
+        approximate, so a translucent box reads as "around here" and keeps the
+        label visually tied to its object even when the pill is nudged aside.
+      */}
+      {objects.map((object) => {
+        const isSelected = object.word === selectedWord;
+        const boxLeft = object.boundingBox.x * containerWidth;
+        const boxTop = object.boundingBox.y * containerHeight;
+        const boxWidth = Math.max(object.boundingBox.width * containerWidth, 12);
+        const boxHeight = Math.max(object.boundingBox.height * containerHeight, 12);
+        return (
+          <View
+            key={`box-${object.id}`}
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              left: boxLeft,
+              top: boxTop,
+              width: boxWidth,
+              height: boxHeight,
+              borderRadius: 10,
+              borderWidth: 2,
+              borderColor: isSelected ? colors.primary : "rgba(255,255,255,0.9)",
+              backgroundColor: isSelected ? "rgba(13,148,136,0.15)" : "rgba(249,115,85,0.12)",
+            }}
+          />
+        );
+      })}
       {pills.map(({ object, left, top, width }) => {
         const isSelected = object.word === selectedWord;
         const isPlaying = object.word === playingWord;

@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   LayoutChangeEvent,
@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { DetailCard } from "@/components/DetailCard";
 import { LabelOverlay } from "@/components/LabelOverlay";
 import { LanguagePicker } from "@/components/LanguagePicker";
+import { PhrasesPanel } from "@/components/PhrasesPanel";
 import { PhrasesSheet } from "@/components/PhrasesSheet";
 import { SceneCapture } from "@/components/SceneCapture";
 import { useVocab } from "@/context/VocabContext";
@@ -230,12 +231,11 @@ export default function ScanScreen() {
     setPhrasesOpen(false);
   }, []);
 
-  const handleOpenPhrases = useCallback(
+  const loadPhrases = useCallback(
     async (sceneObjects: DetectedObject[]) => {
       if (sceneObjects.length === 0) return;
       const labels = Array.from(new Set(sceneObjects.map((o) => o.englishLabel))).sort();
       const cacheKey = `${language}:${labels.join(",")}`;
-      setPhrasesOpen(true);
 
       const cached = phrasesCacheRef.current[cacheKey];
       if (cached) {
@@ -251,17 +251,36 @@ export default function ScanScreen() {
         });
         phrasesCacheRef.current[cacheKey] = result;
         setPhrasesResult(result);
+      } finally {
+        setPhrasesLoading(false);
+      }
+    },
+    [language, phrasesAsync],
+  );
+
+  // Auto-load situational phrases as soon as a scan produces objects, so the
+  // "expressions for this situation" panel is ready without an extra tap.
+  useEffect(() => {
+    if (screenState === "results" && objects.length > 0) {
+      void loadPhrases(objects);
+    }
+  }, [screenState, objects, loadPhrases]);
+
+  const handleOpenPhrases = useCallback(
+    async (sceneObjects: DetectedObject[]) => {
+      if (sceneObjects.length === 0) return;
+      setPhrasesOpen(true);
+      try {
+        await loadPhrases(sceneObjects);
       } catch (error) {
         setPhrasesOpen(false);
         showAlert(
           "회화 표현을 불러오지 못했어요",
           error instanceof Error ? error.message : "다시 시도해 주세요.",
         );
-      } finally {
-        setPhrasesLoading(false);
       }
     },
-    [language, phrasesAsync],
+    [loadPhrases],
   );
 
   const handlePlayPhrase = useCallback(
@@ -355,16 +374,6 @@ export default function ScanScreen() {
         <View style={[styles.languageBar, { paddingTop: insets.top + 12, paddingHorizontal: 16 }]}>
           <LanguagePicker value={language} onChange={setLanguage} disabled />
           <View style={styles.topActions}>
-            {screenState === "results" && objects.length > 0 ? (
-              <Pressable
-                testID="phrases-button"
-                style={[styles.retakeButton, { backgroundColor: colors.accent, borderColor: colors.accent }]}
-                onPress={() => handleOpenPhrases(objects)}
-              >
-                <Feather name="message-circle" size={16} color="#ffffff" />
-                <Text style={[styles.retakeText, { color: "#ffffff" }]}>회화</Text>
-              </Pressable>
-            ) : null}
             <Pressable
               testID="retake-button"
               style={[styles.retakeButton, { backgroundColor: colors.card, borderColor: colors.border }]}
@@ -424,6 +433,16 @@ export default function ScanScreen() {
               onClose={() => setSelectedObject(null)}
             />
           </View>
+        ) : null}
+
+        {screenState === "results" && objects.length > 0 ? (
+          <PhrasesPanel
+            situation={phrasesResult?.situation ?? ""}
+            phrases={phrasesResult?.phrases ?? []}
+            isLoading={phrasesLoading}
+            playingPhraseId={playingPhraseId}
+            onPlay={handlePlayPhrase}
+          />
         ) : null}
       </ScrollView>
       {phrasesOpen ? (

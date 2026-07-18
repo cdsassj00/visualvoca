@@ -7,7 +7,8 @@ export interface CapturedImage {
   height: number;
 }
 
-const MAX_DIMENSION = 1024;
+// 640px면 흔한 사물 인식엔 충분하면서 업로드·모델 처리 지연을 크게 줄인다.
+const MAX_DIMENSION = 640;
 
 /**
  * Downscales and JPEG-compresses a captured photo so it's fast to upload,

@@ -21,18 +21,30 @@ export async function chatCompletionJson(
   messages: ChatMessage[],
   maxCompletionTokens: number,
 ): Promise<string> {
+  const body: Record<string, unknown> = {
+    model: env.OPENAI_MODEL,
+    max_completion_tokens: maxCompletionTokens,
+    response_format: { type: "json_object" },
+    messages,
+  };
+
+  // OpenRouter-only: force a specific upstream provider (e.g. "Groq" for lowest
+  // latency). Comma-separated order; ignored when unset. Harmless on OpenAI
+  // because we only attach it when OPENROUTER_PROVIDER is configured.
+  if (env.OPENROUTER_PROVIDER) {
+    body.provider = {
+      order: env.OPENROUTER_PROVIDER.split(",").map((p) => p.trim()).filter(Boolean),
+      allow_fallbacks: true,
+    };
+  }
+
   const res = await fetch(`${env.OPENAI_BASE_URL}/chat/completions`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
       authorization: `Bearer ${env.OPENAI_API_KEY}`,
     },
-    body: JSON.stringify({
-      model: env.OPENAI_MODEL,
-      max_completion_tokens: maxCompletionTokens,
-      response_format: { type: "json_object" },
-      messages,
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {
